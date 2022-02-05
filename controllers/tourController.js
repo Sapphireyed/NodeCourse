@@ -41,8 +41,12 @@ exports.getAllTours = async (req, res) => {
 
         // EXECUTE QUERY
         // const tours = await query
-        const features = new APIFeatures(Tour.find(), req.query).filter().sort().limit().paginate()
-        console.log('features', features.query)
+        const features = new APIFeatures(Tour.find(), req.query)
+                .filter()
+                .sort()
+                .limit()
+                .paginate()
+
         const tours = await features.query
         // query.sort().select().skip().limit()
 
@@ -161,3 +165,42 @@ exports.aliasTopTourstours = (req, res, next) => {
     next()
 }
 
+exports.getTourStats = async (req, res) => {
+    try {
+        const stats = await Tour.aggregate([ 
+            {
+                $match: { ratingsAverage: { $gte: 4.5 }}
+            },
+            {
+                $group: {
+                    //_id: null,     // to get all of them
+                    _id: '$difficulty',
+                    // _id: { $toUpper: '$difficulty'}
+                    numTours: { $sum: 1 },    // for each of the documents it goes through it adds 1
+                    numRatings: { $sum: '$ratingsQuantity'},
+                    avgRating: { $avg: '$ratingsAverage' },
+                    avgPrice: { $avg: '$price' },
+                    minProce: { $min: '$price' },
+                    maxProce: { $max: '$price' }
+                }
+            },
+            {
+                $sort: { avgPrice: 1 }
+            },
+            // {   // repeating stages is possible
+            //     $match: { _id: { $ne: 'easy'}}
+            // }
+        ])
+        res.status(200).json({
+            status: 'success',
+            data: {
+                stats
+            }
+        })
+    } catch (err) {
+        res.status(404).json({
+            status: "fail",
+            message: 'err" ' + err
+        })
+    }
+}

@@ -8,6 +8,7 @@ const router = express.Router()
 
 // creating alias for a popular, often used route
 router.route('/top-5-cheap').get(tourController.aliasTopTourstours, tourController.getAllTours)
+router.route('/tour-stats').get(tourController.getTourStats)
 
 router.route('/')
    .get(tourController.getAllTours)
