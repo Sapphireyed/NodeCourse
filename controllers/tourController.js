@@ -30,27 +30,24 @@ const Tour = require('./../models/tourModel')
 //     next()
 // }
 
-class APIFeatures {
-    constructor(query, queryString) {
-        this.query = query;
-        this.queryString = queryString
-    }
-
-    filter() {
-        const queryObj = {...this.queryString} 
+exports.getAllTours = async (req, res) => {
+    try {
+        // BUILD QUERY
+        // 1a) filtering
+        const queryObj = {...req.query} 
         const exludedFields = ['page', 'sort', 'limit', 'fields']
         exludedFields.forEach(el => delete queryObj[el])
         // queryObj = req.body can't be used bc then we'd modify both objects
         // with destructuring and creating new give the new object and different reference, not req.query
+        console.log('param', req.params, 'qiery', req.query, queryObj)
         //const tours = await Tour.find()  //get all tours
         //const tours = await Tour.find(req.query)    // get filtered tours
 
         // 1b) advanced filtering
         let  queryString = JSON.stringify(queryObj)
         queryString = queryString.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`) //we add & to req.query to make it match mongo filtering
-
-        //let query = Tour.find(JSON.parse(queryString))       // get filtered tours
-        this.query.find(JSON.parse(queryString))
+        console.log(JSON.parse(queryString))
+        let query = Tour.find(JSON.parse(queryString))       // get filtered tours
 
         // SOME EXPLANATION
         // Tour.find(queryObj) returns object. If we await it straight away we won't be able to use some of it's functions later om
@@ -59,30 +56,20 @@ class APIFeatures {
         // then, lower, we will await it to asign to tour variable.
         // does it make sense ? Nope xD 
 
-        // const easyQuery = await Tour.find({
-        //     difficulty: "easy "
-        // })
-        // const easyQuery2 = await Tour.find()
-        //         .where('difficulty')
-        //         .equals('easy')
-        //         .where('duration')
-        //         .lte(5)
+        const easyQuery = await Tour.find({
+            difficulty: "easy "
+        })
+        const easyQuery2 = await Tour.find()
+                .where('difficulty')
+                .equals('easy')
+                .where('duration')
+                .lte(5)
 
         // filter object in mongo, as reminder: {diffivulty: 'easy', duration: {$gte > 5}}
         // in url: url?difficulty=easy&duration[gte]=5
         // now req query looks like this:
         // {diffivulty: 'easy', duration: {gte > 5}} 
         // do almost identical to mongo filter object
-
-        return this
-    }
-}
-
-exports.getAllTours = async (req, res) => {
-    try {
-        // BUILD QUERY
-        // 1a) filtering
-       let query = Tour.find()
 
         // 2) SORTING
         if (req.query.sort) {
@@ -118,9 +105,7 @@ exports.getAllTours = async (req, res) => {
         }
 
         // EXECUTE QUERY
-        const features = new APIFeatures(Tour.find(), req.query).filter()
-        // const tours = await query
-        const tours = await features.query
+        const tours = await query
         // query.sort().select().skip().limit()
 
         // SEND RESPONSE
