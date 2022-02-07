@@ -204,3 +204,60 @@ exports.getTourStats = async (req, res) => {
         })
     }
 }
+
+exports.getTourPlan = async (req, res) => {
+    try {
+        const year = req.params.year * 1
+        const plan = await Tour.aggregate([ 
+            {
+                $unwind: '$startDates'   // deconstructs an array field from the input documents and outputs one document for each element of the array
+                                         // so we have now each document in as amny copies as they have start dates in the array, 
+                                         // one for each start date
+            },
+            {
+                $match: {
+                    startDates: {
+                        $gte: new Date(`${year-01-01}`),
+                        $lte: new Date(`${year}-12-31`)
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: { $month: '$startDates'},
+                    numToursStarts: { $sum: 1},
+                    tours: { $push: '$name' }   // $push to create an array
+                }
+            },
+            {
+                $addFields: { month: '$_id'}
+            },
+            {
+                $project: {   // we add a val 0 or 1 to each field to decide if it will show up in results
+                    _id: 0
+                }
+            },
+            {
+                $sort: { numToursStarts: -1}   // -1 for descending
+            }
+            // {
+            //     $limit: 4
+            // }
+
+        ])
+//  $group, $unwind, $match etc are aggregation pipeline stages
+//  $month is an aggregation pipeline operatior
+        // 
+        res.status(200).json({
+            status: 'success',
+            data: {
+                plan
+            }
+        })
+    } catch (err) {
+        res.status(404).json({
+            status: "fail",
+            message: 'err" ' + err
+        })
+    }
+}
